@@ -1,0 +1,111 @@
+; Ejercicio lee un # decimal de hasta 5 cifras y dejalo en BX, Asume que es un numero menor a 65,535
+; TAREA HACER LAS VALIDACIONES AL DAR ENTER Y AL INGRESAR EL NUMERO
+;22 octubre
+TITLE NUM_DE LEE UN NUMERO DECIMAL DE HASTA 5 CIFRAS Y DEJALO EN BX
+
+INIT_DS MACRO
+        MOV AX,@DATA
+        MOV DS,AX
+ENDM
+
+DOS_RTN MACRO
+        MOV AH,4Ch
+        INT 21H
+ENDM
+
+DISP_ST MACRO ST
+        LEA DX, ST
+        MOV AH, 09
+        INT 21h
+ENDM
+
+.MODEL SMALL
+.STACK 100H
+.DATA
+        MSG DB 10,13,10,13,10,13, "LA SUMA ES : $ "
+        MSG2  DB 10,13,10,13,10,13, "DAME UN NUMERO DECIMAL DE HASTA 5 CIFRAS: $ "
+        NUM1 DW 0
+        NUM2 DW 0
+        SUMA DW 0
+.CODE
+MAIN PROC
+        ;INICIALIZAR SEGMENTO DE DATOS
+        INIT_DS
+        ;PEDIR UN NUMERO
+        DISP_ST MSG2
+        CALL LEE_DECIMAL
+        MOV NUM1,BX
+        ;PEDIR SEGUNDO NUMERO
+        DISP_ST MSG2
+        CALL LEE_DECIMAL
+        MOV NUM2, BX
+
+        MOV AX, NUM1
+        ADD AX,NUM2
+        MOV SUMA,AX
+        ;NUMERO QUEDA EN BX
+        DISP_ST MSG
+        MOV BX, SUMA
+        CALL DESPLIEGA_DECIMAL
+        ;TERMINAR MI PROGRAMA
+        DOS_RTN
+MAIN ENDP
+LEE_DECIMAL PROC
+        ;LEE UN NUMERO DECIMAL DE HASTA 5 DIGITOS
+        PUSH AX
+        PUSH CX
+        XOR BX,BX
+        XOR CX,CX ;CX CUENTA CUANTOS CARACTERES HEMOS LEIDO
+LEE_NUM:
+        MOV  AX,BX ;PASAR NUMERO ACUMULADO A AX
+        MOV  BX,10 ; SE MULTIPLICA POR 10
+        MUL BX; SE MULTIPLICA AX * 10 Y QUEDA EN DX:AX
+        MOV BX,AX ;GUARDARLO EN BX
+        ;LEE DIGITO
+        MOV  AH,1
+        INT  21h ;QUEDA EN AL
+        ;CONVERTIR DE ASCII A NUMERO
+        AND AL, 0Fh
+        ;ACUMULAR CON BX
+        XOR AH,AH ;EXTENDER AL A AX
+        ADD BX,AX
+        INC CX
+        CMP CX,5
+        JL LEE_NUM
+        POP CX
+        POP AX
+        RET
+LEE_DECIMAL ENDP
+DESPLIEGA_DECIMAL PROC
+        PUSH AX
+        PUSH BX
+        PUSH CX
+        PUSH DX
+        XOR  CX,CX ;AQUI CONTROLO CUANTAS DIVISIONES HE HECHO
+        MOV  AX,BX
+        ; COMPLETAR DE 16 A 32 BITS
+DIVIDIR:
+        XOR DX,DX
+        ;DIVIDIR ENTRE 10
+        MOV BX,10
+        DIV BX ; DIVISION ES: DX:AX /BX ; COCIENTE QUEDA EN AX, RESIDUO EN DX
+        ;METER RESIDUO A LA PILA
+        PUSH DX
+        INC CX
+        CMP AX,0
+        JNE DIVIDIR
+DESPLEGAR:
+        ;PROCESAR PARA DESPLEGARLO
+        POP DX
+        ;CONVERTIR A NUMERO
+        OR DL,30H
+        MOV AH,2
+        INT 21H
+        LOOP DESPLEGAR
+        POP DX
+        POP CX
+        POP BX
+        POP AX
+        RET
+DESPLIEGA_DECIMAL ENDP
+        END MAIN
